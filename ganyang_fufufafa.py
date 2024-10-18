@@ -16,13 +16,16 @@ class CentralServer:
         pass
 
     def add_user(self, uname: str, password: str):
-        self.user_data[uname] = hash(password)
+        self.user_data[uname] = password
         print(f"[NEW USER ADDED] '{uname}'")
 
     def attempt_login(self, uname: str, password: str) -> tuple[str, str]:
-        if (uname in self.user_data) and (self.user_data[uname] == hash(password)):
+        print(f"uname exist: {uname in self.user_data} pass_data = {self.user_data[uname]} pass = {password}")
+        if (uname in self.user_data) and (self.user_data[uname] == password):
+            print("EQUAL")
             return (constant.TYPE_SUCCESS_CENTRAL, "User logged in.")
         else:
+            print("!EQUAL")
             return (constant.TYPE_FAIL_CENTRAL, "Wrong username or password. Please try again!")
     
     def attempt_register(self, uname: str, password: str) -> tuple[str, str]:
@@ -30,6 +33,7 @@ class CentralServer:
             return (constant.TYPE_FAIL_CENTRAL, f"Username '{uname}' already exist. Pick another username")
         else:
             self.add_user(uname, password)
+
             return (constant.TYPE_SUCCESS_CENTRAL, "User registration success.")
 
     def handle_request(self, packet, addr):
@@ -37,6 +41,7 @@ class CentralServer:
         packet = Message.decode(packet)
         print(f"[NEW REQUEST] type:{packet.header}")
         (uname, password) = packet.body.split('|')
+        print(password + 'a')
         if(packet.header == constant.TYPE_REGISTER_CENTRAL):
             header, body = self.attempt_register(uname, password)
         elif(packet.header == constant.TYPE_LOGIN_CENTRAL):

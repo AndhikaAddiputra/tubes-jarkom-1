@@ -87,7 +87,7 @@ class Client:
         
         result = Message.decode(result)
         print(result.header)
-        return (result == constant.TYPE_SUCCESS_CENTRAL, result.body)
+        return (result.header == constant.TYPE_SUCCESS_CENTRAL, result.body)
 
 if __name__ == "__main__":
     client = Client()
