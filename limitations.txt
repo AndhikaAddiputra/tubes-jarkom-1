@@ -1,0 +1,3 @@
+- username couldn't contains '|'
+- message length must be under 256 bytes
+- one username can be logged in to at most 1 device

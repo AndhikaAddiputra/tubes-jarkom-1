@@ -2,26 +2,36 @@ import socket
 from message import Message
 import constant
 import threading
+from encrypt import RSA
 
 SERVER = socket.gethostbyname(socket.gethostname())
 PORT = 5000
 
 class CentralServer:
-    user_data : dict[str, int] = dict()
-    
+    user_data : dict[str, dict[str, int]] = dict()
+     
     def __init__(self) -> None:
         self.dbsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.dbsocket.bind((SERVER, PORT))
+        self.pub, self.n = RSA.load_pub("ganyang_fufufafa.pub")
+        self.priv = RSA.load_priv("server/ganyang_fufufafa")
+        self.rsa = RSA(self.priv, self.n)
         threading.Thread(target=self.request_listener, daemon=True).start()
         pass
 
-    def add_user(self, uname: str, password: str):
-        self.user_data[uname] = password
+    def handle_packet_body(self, packet_body: str) -> tuple[str, str, int]:
+        (uname, password, pub) = packet_body.split('|')
+        password = self.rsa.decrypt(password)
+        return (uname, password, int(pub))
+    
+    def add_user(self, uname: str, password: str, pub_key: int = 0):
+        self.user_data[uname] = {"password":password, "exponent": 65537, "modulus": pub_key}
         print(f"[NEW USER ADDED] '{uname}'")
 
     def attempt_login(self, uname: str, password: str) -> tuple[str, str]:
-        print(f"uname exist: {uname in self.user_data} pass_data = {self.user_data[uname]} pass = {password}")
-        if (uname in self.user_data) and (self.user_data[uname] == password):
+        # print(f"uname exist: {uname in self.user_data} pass_data = {self.user_data[uname]['password']} pass = {password}")
+        # ud = self.user_data[uname]
+        if (uname in self.user_data) and (self.user_data[uname]["password"] == password):
             print("EQUAL")
             return (constant.TYPE_SUCCESS_CENTRAL, "User logged in.")
         else:
@@ -40,7 +50,7 @@ class CentralServer:
         print("CALLED")
         packet = Message.decode(packet)
         print(f"[NEW REQUEST] type:{packet.header}")
-        (uname, password) = packet.body.split('|')
+        (uname, password, pub) = self.handle_packet_body(packet.body)
         print(password + 'a')
         if(packet.header == constant.TYPE_REGISTER_CENTRAL):
             header, body = self.attempt_register(uname, password)
@@ -52,6 +62,8 @@ class CentralServer:
             SERVER,
             PORT,
             header,
+            "|SERVER|",
+            0,
             body
         ).encode()
         self.dbsocket.sendto(response, addr)
@@ -71,7 +83,7 @@ class CentralServer:
         file.readline()
         for line in file:
             data = line.strip().split('|')
-            db.user_data[data[0]] = data[1]
+            db.user_data[data[0]] = {"password":data[1], "exponent": 65537, "modulus": 0}
         file.close()
         return db
     
