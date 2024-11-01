@@ -1,10 +1,11 @@
 import socket
 import threading
-import datetime
+from datetime import datetime
 import time
 import constant   
 from encrypt import RSA  
 from message import Message
+import tkinter as tk
 
 # SERVER = "172.20.10.3"
 SERVER = socket.gethostbyname(socket.gethostname())
@@ -98,7 +99,8 @@ class Client:
         else:
             return (False, "Unauthorized!")
         
-    def receive_message(self):
+    
+    def receive_message(self): 
         # print("AHLAN")
         while True and self.chatAddress[1] != -1:
             packet, addr = self.clientSocket.recvfrom(4096)
@@ -106,11 +108,14 @@ class Client:
             # address = (chatIp, chatPort)
             if(addr == self.chatAddress): # authorized
                 packet = Message.decode(packet)
-                packet.body = self.rsa.decrypt(packet.body)
-                print(f"[{packet.source_username}] {packet.body}")
+                decrypted_message = self.rsa.decrypt(packet.body)
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                print(f"Received message from {packet.source_username}: {decrypted_message}")  # Debugging
+                print("About to display message in UI")
+                if hasattr(self.ui, 'display_message'):
+                    self.ui.display_message(packet.source_username, decrypted_message, timestamp)
         # print("Bye!")
 
-                    
 
     def send_message(self, message: str):
         message = str(self.rsa.encrypt(message, self.chatPub))
@@ -123,6 +128,7 @@ class Client:
                              message).encode()
             
             self.clientSocket.sendto(packet, self.chatAddress)
+            print(f"Sending message: {message}")
     
     def disconnect(self): 
         packet = Message(self.clientSocket.getsockname()[0], 

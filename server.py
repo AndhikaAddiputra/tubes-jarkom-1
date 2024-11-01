@@ -108,6 +108,9 @@ class ChatRoom(Server):
         elif(messages.header == constant.TYPE_AUTH): # Authentication
             password = self.rsa.decrypt(messages.body).encode()
             if(password == PASS):
+                if addr in [stream.origin for stream in self.members]:
+                    print(f"Client {addr} already connected to the room.")
+                    return
                 stream = Stream(self, addr, self.ip, self.clients_key[messages.source_username])
                 packet = Message(
                     self.ip, 
